@@ -1,5 +1,6 @@
 <template>
   <div id="home">
+    <!-- 顶部导航 -->
     <nav-bar class="home-nav">
       <div slot="center">购物街</div>
     </nav-bar>
@@ -17,7 +18,7 @@
         <!-- 流行新款精选商品列表 -->
         <goods-list :goods="showGoods"/>
       </scroll>
-      <back-top @click.native="backClick" v-show="isShowBackTop"/>
+      <back-top @click.native="backTopClick" v-show="isShowBackTop"/>
   </div>
 </template>
 
@@ -34,6 +35,7 @@ import FeatureView from "./childComps/FeatureView";
 
 import { getHomeMultidata, getHomeGoods } from "network/home";
 import { debounce } from 'common/utils'
+import { itemListenerMixin, backTopMixin } from 'common/mixin'
 
 export default {
   components: {
@@ -46,6 +48,7 @@ export default {
     RecommendView,
     FeatureView,
   },
+  mixins: [itemListenerMixin, backTopMixin],
   data() {
     return {
       banners: [],
@@ -56,7 +59,6 @@ export default {
         'sell' :{page: 0, list: []}
       },
       currentType: 'pop',
-      isShowBackTop: false,
       tabOffsetTop: 0,
       isTabFixed: false,
       saveY: 0,
@@ -71,7 +73,11 @@ export default {
   //离开时调用
   deactivated() {
     // console.log('deactivated');
+    //1.保存Y值
     this.saveY = this.$refs.scroll.getScrollY();
+
+    //2.取消全局事件的监听
+    this.$bus.$off('itemImageLoad', this.itemImageListener)
   },
   created() {
     //1.请求多个数据
@@ -83,12 +89,14 @@ export default {
     this.getHomeGoods("sell");
   },
   mounted() {
-    //调用导入的防抖函数, 减少刷新次数
+    /* //调用导入的防抖函数, 减少刷新次数
     const renovate = debounce(this.$refs.scroll.refresh, 50)
     //监听item中的发射图片加载事件
-    this.$bus.$on('itemImageLoad', () => {
+    this.itemImageListener = () =>{
       renovate();
-    })
+    }
+    this.$bus.$on('itemImageLoad', this.itemImageListener) */
+
   },
   methods: {
     /* 事件监听相关的方法 */
@@ -107,9 +115,6 @@ export default {
       }
       this.$refs.tabControl1.currentIndex  = index;
       this.$refs.tabControl2.currentIndex  = index;
-    },
-    backClick() {
-      this.$refs.scroll.scrollTo(0, 0)
     },
     //监听滚动事件
     contentScroll(position) {
